@@ -51,25 +51,6 @@ class Grid:
     def empty_cell_count(self) -> int:
         return self.cells.count(' ')
 
-    def new_block(self, block: BlockShapes):
-        self.place_block(None, self.start_point, block)
-
-    def place_block(self, prev_location, new_location, block: BlockShapes):
-        if prev_location is not None:
-            zipped = [zip(prev_location, point) for point in block.value]
-            old_locations = [tuple([sum(x) for x in d]) for d in zipped]
-            for loc in old_locations:
-                self.__setitem__(loc, " ")
-
-        zipped = [zip(new_location, point) for point in block.value]
-        new_locations = [tuple([sum(x) for x in d]) for d in zipped]
-        for loc in new_locations:
-            self.__setitem__(loc, "#")
-
-    def print_grid(self):
-        for line in self.cells:
-            print(line)
-
 
 @dataclass(frozen=True)
 class Move:
@@ -99,28 +80,41 @@ class GameState:
     def get_random_move(self):
         pass
 
+    def validate_move(self, new_locations: list[tuple], old_locations: list[tuple]):
+        """Check that move is within grid and space is not occupied"""
+        # already occupied spaces by block don't need to be checked and interfere with the 'free space' check
+        newly_occupied = set(new_locations).difference(set(old_locations))
+        validate_height = all([point[1] < TetrisBoardSettings.HEIGHT.value for point in newly_occupied])
+        validate_left = all([point[0] >= 0 for point in newly_occupied])
+        validate_right = all([point[0] < TetrisBoardSettings.WIDTH.value for point in newly_occupied])
+        if validate_height and validate_left and validate_right:
+            return all([self.cells_as_matrix[point[1]][point[0]] == " " for point in newly_occupied])
+
+        return validate_height and validate_left and validate_right
+
+    @staticmethod
+    def get_new_locations(block: Block, direction: Direction):
+        new_location = block.current_location
+        if direction == Direction.RIGHT:
+            new_location = (new_location[0] + 1, new_location[1])
+        elif direction == Direction.LEFT:
+            new_location = (new_location[0] - 1, new_location[1])
+        elif direction == Direction.DOWN:
+            new_location = (new_location[0], new_location[1] + 1)
+
+        zipped = [zip(new_location, point) for point in block.block_shape.value]
+        return [tuple([sum(x) for x in d]) for d in zipped], new_location
+
     def make_move_to(self, direction: Direction, block: Block):
         new_cells = copy(self.cells_as_matrix)
 
-        new_location = block.current_location
-        if direction == Direction.RIGHT:
-            # TODO dit is niet genoeg check voor rechts
-            if (new_location[0] + 1) < TetrisBoardSettings.WIDTH.value:
-                new_location = (new_location[0] + 1, new_location[1])
-        elif direction == Direction.LEFT:
-            if (new_location[0] - 1) >= 0:
-                new_location = (new_location[0] - 1, new_location[1])
-        elif direction == Direction.DOWN:
-            new_location = (new_location[0], new_location[1] + 1)
-        # TODO: check valid moves, not just height, also occupied space and left/right
-        zipped = [zip(new_location, point) for point in block.block_shape.value]
-        new_locations = [tuple([sum(x) for x in d]) for d in zipped]
-        in_grid = all([point[1] < TetrisBoardSettings.HEIGHT.value for point in new_locations])
+        zipped = [zip(block.current_location, point) for point in block.block_shape.value]
+        old_locations = [tuple([sum(x) for x in d]) for d in zipped]
+        new_locations, new_location = self.get_new_locations(block, direction)
+        valid_move = self.validate_move(new_locations, old_locations)
 
-        if in_grid:
+        if valid_move:
             if block.current_location is not None:
-                zipped = [zip(block.current_location, point) for point in block.block_shape.value]
-                old_locations = [tuple([sum(x) for x in d]) for d in zipped]
                 for loc in old_locations:
                     new_cells[loc[1]][loc[0]] = ' '
 
@@ -128,7 +122,8 @@ class GameState:
                 new_cells[loc[1]][loc[0]] = block.block_shape.name
 
                 block.current_location = new_location
-        else:
+        elif direction == Direction.DOWN:
+            # Only stops when landing on something, when hitting right or left on wall or other block, just keep falling
             block.in_motion = False
 
         flat_cells = ''.join([item for row in new_cells for item in row])
