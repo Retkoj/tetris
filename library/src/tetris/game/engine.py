@@ -3,7 +3,7 @@ from threading import Timer
 from typing import TypeAlias, Callable
 from random import choice
 
-from tetris.logic.models import Block, Direction
+from tetris.logic.models import Direction
 from tetris.game.players import Player
 from tetris.game.renderers import Renderer
 from tetris.logic.models import GameState, Grid, BlockShapes
@@ -11,11 +11,12 @@ from tetris.logic.models import GameState, Grid, BlockShapes
 ErrorHandler: TypeAlias = Callable[[Exception], None]
 
 
-@dataclass(frozen=True)
+@dataclass
 class Tetris:
     player: Player
     renderer: Renderer
     error_handler: ErrorHandler | None = None
+    _timeout: bool = False
 
     def play(self):
         game_state = GameState(Grid())
@@ -25,12 +26,14 @@ class Tetris:
             move = game_state.add_new_block(block_shape)
             while move.block.in_motion:
                 self.renderer.render(move.after_state)
-                timeout = 50
+                timeout = 2
                 t = Timer(timeout, self.times_up)
                 t.start()
-                move = self.player.make_move(move.after_state, move.block)
+                while not self._timeout:
+                    move = self.player.make_move(move.after_state, move.block)
+                    self.renderer.render(move.after_state)
                 t.cancel()
-                self.renderer.render(move.after_state)
+                self._timeout = False
                 move = move.after_state.make_move_to(Direction.DOWN, move.block)
             game_state = move.after_state
             if game_state.game_over:
@@ -40,6 +43,5 @@ class Tetris:
     def next_block_shape() -> BlockShapes:
         return choice(list(BlockShapes))
 
-    @staticmethod
-    def times_up():
-        pass
+    def times_up(self):
+        self._timeout = True

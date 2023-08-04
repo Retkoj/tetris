@@ -104,6 +104,7 @@ class GameState:
 
         new_location = block.current_location
         if direction == Direction.RIGHT:
+            # TODO dit is niet genoeg check voor rechts
             if (new_location[0] + 1) < TetrisBoardSettings.WIDTH.value:
                 new_location = (new_location[0] + 1, new_location[1])
         elif direction == Direction.LEFT:
@@ -111,7 +112,7 @@ class GameState:
                 new_location = (new_location[0] - 1, new_location[1])
         elif direction == Direction.DOWN:
             new_location = (new_location[0], new_location[1] + 1)
-
+        # TODO: check valid moves, not just height, also occupied space and left/right
         zipped = [zip(new_location, point) for point in block.block_shape.value]
         new_locations = [tuple([sum(x) for x in d]) for d in zipped]
         in_grid = all([point[1] < TetrisBoardSettings.HEIGHT.value for point in new_locations])
