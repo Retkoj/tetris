@@ -29,22 +29,13 @@ def print_blinking_row(cells: Iterable[Iterable[str]], full_rows: Iterable[int])
 
 
 def print_solid(cells: Iterable[Iterable[str]]) -> None:
-    content = list(cells)
-
-    # build frame
+    # TODO: printing is not fast enough in terminal
     width = len(str(max(TetrisBoardSettings.HEIGHT.value, TetrisBoardSettings.WIDTH.value) - 1))
-    content_line = "# | values |"
 
-    dashes = "-".join("-" * width for _ in range(TetrisBoardSettings.WIDTH.value))
-    frame_line = content_line.replace("values", dashes)
-    frame_line = frame_line.replace("#", " " * width)
-    frame_line = frame_line.replace("| ", "+-").replace(" |", "-+")
+    frame_line = "+-" + "-".join("-" * width for _ in range(TetrisBoardSettings.WIDTH.value)) + "-+\n"
 
-    # print grid
-    print(frame_line)
-    for i, row in enumerate(content, 1):
-        values = " ".join(f"{v:{width}s}" for v in row)
-        line = content_line.replace("values", values)
-        line = line.replace("#", f"{TetrisBoardSettings.HEIGHT.value - i:{width}d}")
-        print(line)
-    print(frame_line)
+    grid = ''
+    grid += frame_line
+    grid += "".join(["| " + " ".join(f"{v:{width}s}" for v in row) + " |\n" for row in cells])
+    grid += frame_line + '\n'
+    print(grid)

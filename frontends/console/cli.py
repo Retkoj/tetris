@@ -1,5 +1,5 @@
-from console_renderer import ConsoleRenderer
-from players import ConsolePlayer
+from .console_renderer import ConsoleRenderer
+from .players import ConsolePlayer
 from tetris.game.engine import Tetris
 
 

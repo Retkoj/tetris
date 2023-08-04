@@ -1,6 +1,6 @@
 import argparse
 
-from players import ConsolePlayer
+from .players import ConsolePlayer
 
 PLAYER_CLASSES = {
     "human": ConsolePlayer
